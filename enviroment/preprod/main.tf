@@ -1,12 +1,4 @@
-data "azurerm_key_vault" "my_project" {
-  name                = "my-project-prepod"
-  resource_group_name = "chinki"
-}
 
-data "azurerm_key_vault_secret" "vm_admin_password" {
-  name         = "vm-admin-password"
-  key_vault_id = data.azurerm_key_vault.my_project.id
-}
 
 module "azurerm_resource_group" {
   source = "../../modules/01_azurerm_resource_group"
