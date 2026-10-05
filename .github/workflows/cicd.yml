@@ -204,7 +204,7 @@ jobs:
         run: terraform init
 
       # -----------------------------------------------------
-      # 7. Terraform Validate
+      # 7. Terraform   Validate
       # -----------------------------------------------------
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
