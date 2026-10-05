@@ -6,10 +6,12 @@ resource "azurerm_linux_virtual_machine" "virtual" {
   location              = each.value.location
   size                  = each.value.size
   admin_username        = each.value.admin_username
-  admin_password        = each.value.admin_password
   network_interface_ids = each.value.network_interface_ids
 
-  disable_password_authentication = false
+  admin_ssh_key {
+    username   = each.value.admin_username
+    public_key = file(pathexpand("~/.ssh/id_rsa.pub"))
+  }
 
   os_disk {
     caching              = each.value.caching
