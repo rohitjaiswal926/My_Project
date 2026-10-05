@@ -1,0 +1,297 @@
+name: Terraform CI-CD Preprod
+
+on:
+
+  # ==========================================
+  # PULL REQUEST
+  # ==========================================
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "environment/preprod/**"
+      - "modules/**"
+
+  # ==========================================
+  # PUSH / MERGE TO MAIN
+  # ==========================================
+  push:
+    branches:
+      - main
+    paths:
+      - "environment/preprod/**"
+      - "modules/**"
+
+
+# ==========================================
+# PERMISSIONS
+# ==========================================
+permissions:
+  contents: read
+
+
+# ==========================================
+# GLOBAL VARIABLES
+# ==========================================
+env:
+
+  # Tumhare actual folder ke according
+  TF_WORKING_DIR: ./environment/preprod
+
+  # Azure Key Vault
+  KEY_VAULT_NAME: my-project-prepod
+  KEY_VAULT_SECRET_NAME: vm-admin-password
+
+
+jobs:
+
+  # =====================================================
+  # JOB 1 — TERRAFORM PLAN
+  # =====================================================
+
+  terraform-plan:
+
+    name: Terraform Plan
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ------------------------------------------
+      # 1. Checkout Code
+      # ------------------------------------------
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+
+      # ------------------------------------------
+      # 2. Create terraform.tfvars
+      #    GitHub Secret → terraform.tfvars
+      # ------------------------------------------
+
+      - name: Create terraform.tfvars
+
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+        env:
+          TF_VARS: ${{ secrets.TF_VARS }}
+
+        run: |
+          printf '%s' "$TF_VARS" > terraform.tfvars
+
+
+      # ------------------------------------------
+      # 3. Azure Login
+      #    Service Principal + Client Secret
+      # ------------------------------------------
+
+      - name: Azure Login
+
+        uses: azure/login@v3
+
+        with:
+
+          creds: |
+            {
+              "clientId": "${{ secrets.CLIENT_ID }}",
+              "clientSecret": "${{ secrets.CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.TENANT_ID }}"
+            }
+
+
+      # ------------------------------------------
+      # 4. Get VM Password from Key Vault
+      # ------------------------------------------
+
+      - name: Get VM Password from Key Vault
+
+        shell: bash
+
+        run: |
+
+          PASSWORD="$(az keyvault secret show \
+            --vault-name "$KEY_VAULT_NAME" \
+            --name "$KEY_VAULT_SECRET_NAME" \
+            --query value \
+            --output tsv)"
+
+          echo "::add-mask::$PASSWORD"
+
+          echo "TF_VAR_vm_admin_password=$PASSWORD" >> "$GITHUB_ENV"
+
+
+      # ------------------------------------------
+      # 5. Setup Terraform
+      # ------------------------------------------
+
+      - name: Setup Terraform
+
+        uses: hashicorp/setup-terraform@v3
+
+
+      # ------------------------------------------
+      # 6. Terraform Init
+      # ------------------------------------------
+
+      - name: Terraform Init
+
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+        run: terraform init
+
+
+      # ------------------------------------------
+      # 7. Terraform Format Check
+      # ------------------------------------------
+
+      - name: Terraform Format Check
+
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+        run: terraform fmt -check -recursive
+
+
+      # ------------------------------------------
+      # 8. Terraform Validate
+      # ------------------------------------------
+
+      - name: Terraform Validate
+
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+        run: terraform validate
+
+
+      # ------------------------------------------
+      # 9. Terraform Plan
+      # ------------------------------------------
+
+      - name: Terraform Plan
+
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+        run: terraform plan
+
+
+  # =====================================================
+  # JOB 2 — TERRAFORM APPLY
+  # =====================================================
+
+  terraform-apply:
+
+    name: Terraform Apply
+
+    needs:
+      - terraform-plan
+
+    # Apply sirf main branch par
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    runs-on: ubuntu-latest
+
+
+    # ==========================================
+    # GitHub Environment
+    # ==========================================
+
+    environment:
+      name: preprod
+
+
+    steps:
+
+      # ------------------------------------------
+      # 1. Checkout Code
+      # ------------------------------------------
+
+      - name: Checkout Code
+
+        uses: actions/checkout@v4
+
+
+      # ------------------------------------------
+      # 2. Create terraform.tfvars
+      # ------------------------------------------
+
+      - name: Create terraform.tfvars
+
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+        env:
+          TF_VARS: ${{ secrets.TF_VARS }}
+
+        run: |
+          printf '%s' "$TF_VARS" > terraform.tfvars
+
+
+      # ------------------------------------------
+      # 3. Azure Login
+      # ------------------------------------------
+
+      - name: Azure Login
+
+        uses: azure/login@v3
+
+        with:
+
+          creds: |
+            {
+              "clientId": "${{ secrets.CLIENT_ID }}",
+              "clientSecret": "${{ secrets.CLIENT_SECRET }}",
+              "subscriptionId": "${{ secrets.SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.TENANT_ID }}"
+            }
+
+
+      # ------------------------------------------
+      # 4. Get VM Password from Key Vault
+      # ------------------------------------------
+
+      - name: Get VM Password from Key Vault
+
+        shell: bash
+
+        run: |
+
+          PASSWORD="$(az keyvault secret show \
+            --vault-name "$KEY_VAULT_NAME" \
+            --name "$KEY_VAULT_SECRET_NAME" \
+            --query value \
+            --output tsv)"
+
+          echo "::add-mask::$PASSWORD"
+
+          echo "TF_VAR_vm_admin_password=$PASSWORD" >> "$GITHUB_ENV"
+
+
+      # ------------------------------------------
+      # 5. Setup Terraform
+      # ------------------------------------------
+
+      - name: Setup Terraform
+
+        uses: hashicorp/setup-terraform@v3
+
+
+      # ------------------------------------------
+      # 6. Terraform Init
+      # ------------------------------------------
+
+      - name: Terraform Init
+
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+        run: terraform init
+
+
+      # ------------------------------------------
+      # 7. Terraform Apply
+      # ------------------------------------------
+
+      - name: Terraform Apply
+
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+        run: terraform apply -auto-approve
