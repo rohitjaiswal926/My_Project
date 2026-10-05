@@ -8,7 +8,7 @@ resource "azurerm_linux_virtual_machine" "virtual" {
   admin_username        = each.value.admin_username
   network_interface_ids = each.value.network_interface_ids
 
-  disable_password_authentication = false
+  disable_password_authentication = true
 
   os_disk {
     caching              = each.value.caching
