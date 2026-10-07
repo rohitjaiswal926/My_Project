@@ -206,13 +206,19 @@ jobs:
       # -----------------------------------------------------
       # 7. Terraform   Validate
       # -----------------------------------------------------
+
+
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform validate
 
+
+        
+
       # -----------------------------------------------------
       # 8. Terraform Apply
       # -----------------------------------------------------
+      
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform apply -auto-approve
