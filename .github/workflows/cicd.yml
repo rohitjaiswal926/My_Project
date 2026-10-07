@@ -210,6 +210,9 @@ jobs:
 
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
+
+
+        
         run: terraform validate
 
 
