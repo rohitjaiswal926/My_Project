@@ -1,8 +1,8 @@
 terraform {
     backend "azurerm" {
-  resource_group_name  = "chinki"
-  storage_account_name = "storagechinki"
-  container_name       = "containerchinki"
-  key                  = "backendfile"
+  resource_group_name  = "backendchinki"
+  storage_account_name = "backendstoragechinki"
+  container_name       = "containerbackend"
+  key                  = "backendfile1"
 }
 }
