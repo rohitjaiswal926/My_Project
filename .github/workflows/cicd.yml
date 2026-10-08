@@ -5,8 +5,6 @@ on:
     branches:
       - main
 
-      
-
   push:
     branches:
       - main
@@ -101,6 +99,7 @@ jobs:
       # -----------------------------------------------------
       - name: Terraform Format Check
         working-directory: ${{ env.TF_WORKING_DIR }}
+        
         run: terraform fmt -check -recursive
 
       # -----------------------------------------------------
