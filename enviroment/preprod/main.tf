@@ -7,6 +7,9 @@ module "azurerm_resource_group" {
 
 module "azurerm_virtual_network" {
   depends_on = [module.azurerm_resource_group]
+
+  
+
   source     = "../../modules/02_azurerm_virtual_network"
 
 
