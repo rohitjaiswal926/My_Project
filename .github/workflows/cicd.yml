@@ -1,3 +1,4 @@
+```yaml
 name: Terraform CI-CD Preprod
 
 on:
@@ -14,6 +15,7 @@ permissions:
 
 env:
   TF_WORKING_DIR: ./enviroment/preprod
+  TERRAFORM_VERSION: 1.15.8
 
 jobs:
 
@@ -86,6 +88,8 @@ jobs:
       # -----------------------------------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       # -----------------------------------------------------
       # 6. Terraform Init
@@ -99,7 +103,6 @@ jobs:
       # -----------------------------------------------------
       - name: Terraform Format Check
         working-directory: ${{ env.TF_WORKING_DIR }}
-
         run: terraform fmt -check -recursive
 
       # -----------------------------------------------------
@@ -107,8 +110,6 @@ jobs:
       # -----------------------------------------------------
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
-
-        
         run: terraform validate
 
       # -----------------------------------------------------
@@ -198,6 +199,8 @@ jobs:
       # -----------------------------------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
       # -----------------------------------------------------
       # 6. Terraform Init
@@ -207,29 +210,15 @@ jobs:
         run: terraform init
 
       # -----------------------------------------------------
-      # 7. Terraform   Validate
+      # 7. Terraform Validate
       # -----------------------------------------------------
-
-
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
-
-
-
         run: terraform validate
-
-
-        
 
       # -----------------------------------------------------
       # 8. Terraform Apply
       # -----------------------------------------------------
-      
-      - name: Terraform Apply\
-
-
-
-
-      
+      - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform apply -auto-approve
