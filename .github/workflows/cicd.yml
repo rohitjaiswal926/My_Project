@@ -5,7 +5,6 @@ on:
   pull_request:
     branches:
       - main
-
   push:
     branches:
       - main
@@ -15,28 +14,17 @@ permissions:
 
 env:
   TF_WORKING_DIR: ./enviroment/preprod
-  TERRAFORM_VERSION: 1.15.8
+  TERRAFORM_VERSION: "1.15.8"
 
 jobs:
-
-  # =========================================================
-  # TERRAFORM PLAN
-  # =========================================================
   terraform-plan:
     name: Terraform Plan
     runs-on: ubuntu-latest
 
     steps:
-
-      # -----------------------------------------------------
-      # 1. Checkout Code
-      # -----------------------------------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # -----------------------------------------------------
-      # 2. Create terraform.tfvars from GitHub Secret
-      # -----------------------------------------------------
       - name: Create terraform.tfvars
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
@@ -44,9 +32,6 @@ jobs:
         run: |
           printf '%s' "$TF_VARS" > terraform.tfvars
 
-      # -----------------------------------------------------
-      # 3. Prepare Azure Credentials
-      # -----------------------------------------------------
       - name: Prepare Azure Credentials
         id: azure-creds
         env:
@@ -74,80 +59,47 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # -----------------------------------------------------
-      # 4. Azure Login
-      # -----------------------------------------------------
       - name: Azure Login
         uses: azure/login@v3
         with:
           auth-type: SERVICE_PRINCIPAL
           creds: ${{ steps.azure-creds.outputs.creds }}
 
-      # -----------------------------------------------------
-      # 5. Setup Terraform
-      # -----------------------------------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      # -----------------------------------------------------
-      # 6. Terraform Init
-      # -----------------------------------------------------
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
 
-      # -----------------------------------------------------
-      # 7. Terraform Format Check
-      # -----------------------------------------------------
       - name: Terraform Format Check
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform fmt -check -recursive
 
-      # -----------------------------------------------------
-      # 8. Terraform Validate
-      # -----------------------------------------------------
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform validate
 
-      # -----------------------------------------------------
-      # 9. Terraform Plan
-      # -----------------------------------------------------
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan
 
-
-  # =========================================================
-  # TERRAFORM APPLY
-  # =========================================================
   terraform-apply:
     name: Terraform Apply
-
     needs:
       - terraform-plan
-
-    # Apply ONLY after merge/push to main
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
     runs-on: ubuntu-latest
 
     environment:
       name: preprod
 
     steps:
-
-      # -----------------------------------------------------
-      # 1. Checkout Code
-      # -----------------------------------------------------
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # -----------------------------------------------------
-      # 2. Create terraform.tfvars from GitHub Secret
-      # -----------------------------------------------------
       - name: Create terraform.tfvars
         working-directory: ${{ env.TF_WORKING_DIR }}
         env:
@@ -155,9 +107,6 @@ jobs:
         run: |
           printf '%s' "$TF_VARS" > terraform.tfvars
 
-      # -----------------------------------------------------
-      # 3. Prepare Azure Credentials
-      # -----------------------------------------------------
       - name: Prepare Azure Credentials
         id: azure-creds
         env:
@@ -185,45 +134,26 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # -----------------------------------------------------
-      # 4. Azure Login
-      # -----------------------------------------------------
       - name: Azure Login
         uses: azure/login@v3
         with:
           auth-type: SERVICE_PRINCIPAL
           creds: ${{ steps.azure-creds.outputs.creds }}
 
-      # -----------------------------------------------------
-      # 5. Setup Terraform
-      # -----------------------------------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      # -----------------------------------------------------
-      # 6. Terraform Init
-      # -----------------------------------------------------
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
 
-      # -----------------------------------------------------
-      # 7. Terraform Validate
-      # -----------------------------------------------------
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform validate
 
-      # -----------------------------------------------------
-      # 8. Terraform Apply
-      # -----------------------------------------------------
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
-
-
-        
-
-
         run: terraform apply -auto-approve
+```
