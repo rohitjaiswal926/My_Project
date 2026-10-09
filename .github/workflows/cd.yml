@@ -40,7 +40,6 @@ steps:
     with:
       terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-  # Create variables file from GitHub Secret
   - name: Create Terraform Variables File
     working-directory: ${{ env.TF_WORKING_DIR }}
     env:
@@ -49,7 +48,6 @@ steps:
     run: |
       printf '%s' "$TF_VARS" > terraform.tfvars
 
-  # Azure login
   - name: Azure Login
     uses: azure/login@v3
     with:
@@ -57,27 +55,22 @@ steps:
       creds: >-
         {"clientId":"${{ secrets.CLIENT_ID }}","clientSecret":"${{ secrets.CLIENT_SECRET }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID }}","tenantId":"${{ secrets.TENANT_ID }}"}
 
-  # 1. Terraform Format
   - name: Terraform Format
     working-directory: ${{ env.TF_WORKING_DIR }}
     run: terraform fmt -check -recursive
 
-  # 2. Terraform Init
   - name: Terraform Init
     working-directory: ${{ env.TF_WORKING_DIR }}
     run: terraform init -input=false
 
-  # 3. Terraform Validate
   - name: Terraform Validate
     working-directory: ${{ env.TF_WORKING_DIR }}
     run: terraform validate
 
-  # 4. Terraform Plan
   - name: Terraform Plan
     working-directory: ${{ env.TF_WORKING_DIR }}
     run: terraform plan -input=false -no-color -out=tfplan
 
-  # 5. Terraform Apply the exact saved plan
   - name: Terraform Apply
     working-directory: ${{ env.TF_WORKING_DIR }}
     run: terraform apply -input=false -auto-approve tfplan
