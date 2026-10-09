@@ -38,6 +38,7 @@ jobs:
           TF_VARS: ${{ secrets.TF_VARS }}
         run: |
           printf '%s' "$TF_VARS" > terraform.tfvars
+          
 
       - name: Prepare Azure Credentials
         id: azure-creds
