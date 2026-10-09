@@ -18,19 +18,4 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
-terraform {
 
-
-  
-
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "5.9.0"
-    }
-  }
-}
-
-provider "azurerm" {
-  features {}
-}

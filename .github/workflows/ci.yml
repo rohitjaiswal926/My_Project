@@ -5,8 +5,7 @@ on:
   push:
     branches:
       - features1
-
-      
+  
 
 permissions:
   contents: read

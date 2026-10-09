@@ -6,19 +6,3 @@ resource "azurerm_public_ip" "public_ip" {
   allocation_method   = each.value.allocation_method
 }
 
-terraform {
- 
-
-  
-
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "5.9.0"
-    }
-  }
-}
-
-provider "azurerm" {
-  features {}
-}
