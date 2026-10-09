@@ -1,10 +1,8 @@
-```yaml
+
 name: Terraform CI-CD Preprod
 
 on:
-  pull_request:
-    branches:
-      - main
+
   push:
     branches:
       - main
@@ -156,4 +154,3 @@ jobs:
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform apply -auto-approve
-```
