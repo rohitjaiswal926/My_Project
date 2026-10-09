@@ -1,33 +1,26 @@
 name: Terraform CD Preprod
 
 on:
-workflow_run:
-workflows:
-- Terraform CI Preprod
-types:
-- completed
+push:
 branches:
 - main
 
 permissions:
 contents: read
-actions: read
 
 env:
 TF_WORKING_DIR: ./enviroment/preprod
-TERRAFORM_VERSION: "1.15.8"
+TERRAFORM_VERSION: "1.14.6"
+ARM_CLIENT_ID: ${{ secrets.CLIENT_ID }}
+ARM_CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+ARM_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
+ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
 
 jobs:
-terraform-apply:
-name: Terraform Apply
-
-```
-if: >-
-  github.event.workflow_run.conclusion == 'success' &&
-  github.event.workflow_run.event == 'push' &&
-  github.event.workflow_run.head_branch == 'main'
-
+terraform-cd:
+name: Terraform Apply Preprod
 runs-on: ubuntu-latest
+
 
 environment:
   name: preprod
@@ -37,61 +30,55 @@ concurrency:
   cancel-in-progress: false
 
 steps:
-  - name: Checkout Same Commit
+  - name: Checkout Main Branch
     uses: actions/checkout@v6
     with:
-      ref: ${{ github.event.workflow_run.head_sha }}
+      ref: main
 
   - name: Setup Terraform
-    uses: hashicorp/setup-terraform@v3
+    uses: hashicorp/setup-terraform@v4
     with:
       terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-  - name: Prepare Azure Credentials
-    id: azure-creds
-    shell: bash
+  # Create variables file from GitHub Secret
+  - name: Create Terraform Variables File
+    working-directory: ${{ env.TF_WORKING_DIR }}
     env:
-      CLIENT_ID: ${{ secrets.CLIENT_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-      SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
-      TENANT_ID: ${{ secrets.TENANT_ID }}
+      TF_VARS: ${{ secrets.TF_VARS }}
+    shell: bash
     run: |
-      CREDS="$(jq -n \
-        --arg clientId "$CLIENT_ID" \
-        --arg clientSecret "$CLIENT_SECRET" \
-        --arg subscriptionId "$SUBSCRIPTION_ID" \
-        --arg tenantId "$TENANT_ID" \
-        '{
-          clientId: $clientId,
-          clientSecret: $clientSecret,
-          subscriptionId: $subscriptionId,
-          tenantId: $tenantId
-        }')"
+      printf '%s' "$TF_VARS" > terraform.tfvars
 
-      {
-        echo 'creds<<EOF'
-        echo "$CREDS"
-        echo 'EOF'
-      } >> "$GITHUB_OUTPUT"
-
+  # Azure login
   - name: Azure Login
     uses: azure/login@v3
     with:
       auth-type: SERVICE_PRINCIPAL
-      creds: ${{ steps.azure-creds.outputs.creds }}
+      creds: >-
+        {"clientId":"${{ secrets.CLIENT_ID }}","clientSecret":"${{ secrets.CLIENT_SECRET }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID }}","tenantId":"${{ secrets.TENANT_ID }}"}
 
+  # 1. Terraform Format
+  - name: Terraform Format
+    working-directory: ${{ env.TF_WORKING_DIR }}
+    run: terraform fmt -check -recursive
+
+  # 2. Terraform Init
   - name: Terraform Init
     working-directory: ${{ env.TF_WORKING_DIR }}
     run: terraform init -input=false
 
-  - name: Download CI Terraform Plan
-    uses: actions/download-artifact@v4
-    with:
-      name: terraform-preprod-plan
-      path: ${{ env.TF_WORKING_DIR }}
-      github-token: ${{ secrets.GITHUB_TOKEN }}
-      run-id: ${{ github.event.workflow_run.id }}
+  # 3. Terraform Validate
+  - name: Terraform Validate
+    working-directory: ${{ env.TF_WORKING_DIR }}
+    run: terraform validate
 
+  # 4. Terraform Plan
+  - name: Terraform Plan
+    working-directory: ${{ env.TF_WORKING_DIR }}
+    run: terraform plan -input=false -no-color -out=tfplan
+
+  # 5. Terraform Apply the exact saved plan
   - name: Terraform Apply
     working-directory: ${{ env.TF_WORKING_DIR }}
     run: terraform apply -input=false -auto-approve tfplan
+
