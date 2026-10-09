@@ -1,0 +1,54 @@
+name: Terraform CI Preprod
+
+on:
+push:
+branches:
+- feature\
+
+permissions:
+contents: read
+
+env:
+TF_WORKING_DIR: ./enviroment/preprod
+TERRAFORM_VERSION: "1.15.8"
+
+jobs:
+terraform-ci:
+name: Terraform Validate and Plan
+runs-on: ubuntu-latest
+
+```
+steps:
+  - name: Checkout Code
+    uses: actions/checkout@v6
+
+  - name: Setup Terraform
+    uses: hashicorp/setup-terraform@v3
+    with:
+      terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+  - name: Terraform Format
+    working-directory: ${{ env.TF_WORKING_DIR }}
+    run: terraform fmt -check -recursive
+
+  - name: Terraform Init
+    working-directory: ${{ env.TF_WORKING_DIR }}
+    run: terraform init -input=false
+
+  - name: Terraform Validate
+    working-directory: ${{ env.TF_WORKING_DIR }}
+    run: terraform validate
+
+  # Keep your existing security scans and Azure login
+  # before Terraform Plan, if required.
+
+  - name: Terraform Plan
+    working-directory: ${{ env.TF_WORKING_DIR }}
+    run: terraform plan -input=false -out=tfplan
+
+  - name: Upload Terraform Plan
+    uses: actions/upload-artifact@v4
+    with:
+      name: terraform-preprod-plan
+      path: ${{ env.TF_WORKING_DIR }}/tfplan
+      retention-days: 1
