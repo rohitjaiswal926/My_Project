@@ -6,3 +6,21 @@ resource "azurerm_virtual_network" "vnet" {
   resource_group_name = each.value.resource_group_name
   address_space       = each.value.address_space
 }
+
+
+terraform {
+  required_version = ">= 1.14.6"
+
+  
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "5.9.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}

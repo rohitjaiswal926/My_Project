@@ -1,13 +1,13 @@
+
 terraform {
+  required_version = ">= 1.14.6"
+
   backend "azurerm" {
     resource_group_name  = "rg-terraform-state"
     storage_account_name = "rohitstorage0810"
     container_name       = "tfstate"
     key                  = "preprod.tfstate"
   }
-
-
-
 
   required_providers {
     azurerm = {
@@ -18,7 +18,5 @@ terraform {
 }
 
 provider "azurerm" {
-  features {
-
-  }
+  features {}
 }

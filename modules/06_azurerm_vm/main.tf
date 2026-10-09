@@ -24,3 +24,21 @@ resource "azurerm_linux_virtual_machine" "virtual" {
     version   = each.value.version
   }
 }
+
+
+terraform {
+  required_version = ">= 1.14.6"
+
+ 
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "5.9.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}

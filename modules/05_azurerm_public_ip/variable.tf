@@ -1,1 +1,4 @@
-variable "public_ip" {}
+variable "public_ip" {
+  description = "Public IP configuration"
+  type        = map(any)
+}

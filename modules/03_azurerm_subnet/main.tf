@@ -6,3 +6,20 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = each.value.address_prefixes
 
 }
+
+terraform {
+  required_version = ">= 1.14.6"
+
+ 
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "5.9.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}
