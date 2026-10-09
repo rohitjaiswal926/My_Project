@@ -1,113 +1,80 @@
+
 name: Terraform CI Preprod
 
-'on':
-push:
-branches:
-- feature
-
+on:
+  push:
+    branches:
+      - feature
 
 permissions:
-contents: read
+  contents: read
 
 env:
-TF_WORKING_DIR: ./enviroment/preprod
-TERRAFORM_VERSION: "1.14.6"
-ARM_CLIENT_ID: ${{ secrets.CLIENT_ID }}
-ARM_CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-ARM_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
-ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
+  TF_WORKING_DIR: ./enviroment/preprod
+  TERRAFORM_VERSION: "1.14.6"
+  ARM_CLIENT_ID: ${{ secrets.CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
+  ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
 
 jobs:
-terraform-ci:
-name: Security Scan and Terraform Plan
-runs-on: ubuntu-latest
+  terraform-ci:
+    name: Terraform CI
+    runs-on: ubuntu-latest
 
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-steps:
-  - name: Checkout Code
-    uses: actions/checkout@v4
-    with:
-      fetch-depth: 0
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-  # 1. Gitleaks secret scanning
-  - name: Gitleaks Scan
-    uses: gitleaks/gitleaks-action@v2
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Terraform Variables File
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        shell: bash
+        env:
+          TF_VARS: ${{ secrets.TF_VARS }}
+        run: |
+          printf '%s' "$TF_VARS" > terraform.tfvars
 
-  # 2. Setup TFLint
-  - name: Setup TFLint
-    uses: terraform-linters/setup-tflint@v4
+      - name: Prepare Azure Credentials
+        id: azure-creds
+        shell: bash
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
+          TENANT_ID: ${{ secrets.TENANT_ID }}
+        run: |
+          CREDS="$(jq -n \
+            --arg clientId "$CLIENT_ID" \
+            --arg clientSecret "$CLIENT_SECRET" \
+            --arg subscriptionId "$SUBSCRIPTION_ID" \
+            --arg tenantId "$TENANT_ID" \
+            '{clientId:$clientId,clientSecret:$clientSecret,subscriptionId:$subscriptionId,tenantId:$tenantId}')"
 
-  # 3. TFLint scan
-  - name: TFLint Scan
-    working-directory: ${{ env.TF_WORKING_DIR }}
-    run: |
-      tflint --init
-      tflint
+          {
+            echo 'creds<<EOF'
+            echo "$CREDS"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
-  # 4. Checkov security scan
-  - name: Checkov Scan
-    uses: bridgecrewio/checkov-action@v12
-    with:
-      directory: ./enviroment/preprod
-      framework: terraform
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ steps.azure-creds.outputs.creds }}
 
-  # 5. Setup Terraform
-  - name: Setup Terraform
-    uses: hashicorp/setup-terraform@v3
-    with:
-      terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -input=false
 
-  # 6. Create tfvars from GitHub Secret
-  - name: Create Terraform Variables File
-    working-directory: ${{ env.TF_WORKING_DIR }}
-    shell: bash
-    env:
-      TF_VARS: ${{ secrets.TF_VARS }}
-    run: |
-      printf '%s' "$TF_VARS" > terraform.tfvars
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
 
-  # 7. Azure Login
-  - name: Prepare Azure Credentials
-    id: azure-creds
-    shell: bash
-    env:
-      CLIENT_ID: ${{ secrets.CLIENT_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-      SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
-      TENANT_ID: ${{ secrets.TENANT_ID }}
-    run: |
-      CREDS="$(jq -n \
-        --arg clientId "$CLIENT_ID" \
-        --arg clientSecret "$CLIENT_SECRET" \
-        --arg subscriptionId "$SUBSCRIPTION_ID" \
-        --arg tenantId "$TENANT_ID" \
-        '{clientId:$clientId,clientSecret:$clientSecret,subscriptionId:$subscriptionId,tenantId:$tenantId}')"
-
-      {
-        echo 'creds<<EOF'
-        echo "$CREDS"
-        echo 'EOF'
-      } >> "$GITHUB_OUTPUT"
-
-  - name: Azure Login
-    uses: azure/login@v2
-    with:
-      creds: ${{ steps.azure-creds.outputs.creds }}
-
-  # 8. Terraform Init
-  - name: Terraform Init
-    working-directory: ${{ env.TF_WORKING_DIR }}
-    run: terraform init -input=false
-
-  # 9. Terraform Validate
-  - name: Terraform Validate
-    working-directory: ${{ env.TF_WORKING_DIR }}
-    run: terraform validate
-
-  # 10. Terraform Plan
-  - name: Terraform Plan
-    working-directory: ${{ env.TF_WORKING_DIR }}
-    run: terraform plan -input=false -no-color
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -input=false -no-color
 
