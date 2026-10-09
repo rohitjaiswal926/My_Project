@@ -5,6 +5,7 @@ terraform {
       version = "5.9.0"
     }
   }
+  
 
   backend "azurerm" {
     resource_group_name  = "rg-terraform-state"
