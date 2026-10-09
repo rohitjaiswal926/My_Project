@@ -11,10 +11,6 @@ contents: read
 env:
 TF_WORKING_DIR: ./enviroment/preprod
 TERRAFORM_VERSION: "1.14.6"
-ARM_CLIENT_ID: ${{ secrets.CLIENT_ID }}
-ARM_CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-ARM_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
-ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
 
 jobs:
 terraform-cd:
@@ -31,29 +27,25 @@ concurrency:
 
 steps:
   - name: Checkout Main Branch
-    uses: actions/checkout@v6
-    with:
-      ref: main
+    uses: actions/checkout@v4
 
   - name: Setup Terraform
-    uses: hashicorp/setup-terraform@v4
+    uses: hashicorp/setup-terraform@v3
     with:
       terraform_version: ${{ env.TERRAFORM_VERSION }}
 
   - name: Create Terraform Variables File
     working-directory: ${{ env.TF_WORKING_DIR }}
+    shell: bash
     env:
       TF_VARS: ${{ secrets.TF_VARS }}
-    shell: bash
     run: |
       printf '%s' "$TF_VARS" > terraform.tfvars
 
   - name: Azure Login
-    uses: azure/login@v3
+    uses: azure/login@v2
     with:
-      auth-type: SERVICE_PRINCIPAL
-      creds: >-
-        {"clientId":"${{ secrets.CLIENT_ID }}","clientSecret":"${{ secrets.CLIENT_SECRET }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID }}","tenantId":"${{ secrets.TENANT_ID }}"}
+      creds: '{"clientId":"${{ secrets.CLIENT_ID }}","clientSecret":"${{ secrets.CLIENT_SECRET }}","subscriptionId":"${{ secrets.SUBSCRIPTION_ID }}","tenantId":"${{ secrets.TENANT_ID }}"}'
 
   - name: Terraform Format
     working-directory: ${{ env.TF_WORKING_DIR }}
@@ -69,7 +61,7 @@ steps:
 
   - name: Terraform Plan
     working-directory: ${{ env.TF_WORKING_DIR }}
-    run: terraform plan -input=false -no-color -out=tfplan
+    run: terraform plan -input=false -out=tfplan
 
   - name: Terraform Apply
     working-directory: ${{ env.TF_WORKING_DIR }}
