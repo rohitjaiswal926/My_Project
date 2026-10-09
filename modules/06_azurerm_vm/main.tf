@@ -27,7 +27,7 @@ resource "azurerm_linux_virtual_machine" "virtual" {
 
 
 terraform {
-  required_version = ">= 1.14.6"
+ 
 
  
 

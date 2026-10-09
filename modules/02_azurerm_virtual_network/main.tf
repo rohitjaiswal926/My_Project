@@ -9,9 +9,7 @@ resource "azurerm_virtual_network" "vnet" {
 
 
 terraform {
-  required_version = ">= 1.14.6"
-
-  
+ 
 
   required_providers {
     azurerm = {

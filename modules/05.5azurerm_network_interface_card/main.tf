@@ -18,7 +18,7 @@ resource "azurerm_network_interface" "nic" {
 
 
 terraform {
-  required_version = ">= 1.14.6"
+ 
 
   
 

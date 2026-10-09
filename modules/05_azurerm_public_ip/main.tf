@@ -7,7 +7,7 @@ resource "azurerm_public_ip" "public_ip" {
 }
 
 terraform {
-  required_version = ">= 1.14.6"
+ 
 
   
 

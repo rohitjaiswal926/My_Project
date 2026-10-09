@@ -8,7 +8,7 @@ resource "azurerm_subnet" "subnet" {
 }
 
 terraform {
-  required_version = ">= 1.14.6"
+
 
  
 
