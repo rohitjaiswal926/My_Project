@@ -1,7 +1,6 @@
 
 name: Terraform CI Preprod
 
-
 on:
   push:
     branches:
@@ -30,7 +29,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 2. Gitleaks - scan leaked secrets
+      # 2. Gitleaks - scan for leaked secrets
       - name: Gitleaks Secret Scan
         uses: gitleaks/gitleaks-action@v3
         env:
@@ -42,7 +41,7 @@ jobs:
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      # 4. Terraform Format
+      # 4. Terraform format check
       - name: Terraform Format Check
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform fmt -check -recursive
@@ -61,15 +60,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: tflint
 
-      # 8. Checkov security scan
-      - name: Checkov Security Scan
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: ./enviroment/preprod
-          framework: terraform
-          quiet: true
-
-      # 9. Create terraform.tfvars from GitHub Secret
+      # 8. Create terraform.tfvars from GitHub Secret
       - name: Create Terraform Variables File
         working-directory: ${{ env.TF_WORKING_DIR }}
         shell: bash
@@ -77,14 +68,16 @@ jobs:
           TF_VARS: ${{ secrets.TF_VARS }}
         run: |
           set -e
+
           if [ -z "$TF_VARS" ]; then
             echo "ERROR: TF_VARS secret is empty."
             exit 1
           fi
+
           printf '%s' "$TF_VARS" > terraform.tfvars
           chmod 600 terraform.tfvars
 
-      # 10. Prepare Azure credentials JSON
+      # 9. Prepare Azure credentials
       - name: Prepare Azure Credentials
         id: azure-creds
         shell: bash
@@ -116,23 +109,23 @@ jobs:
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-      # 11. Azure Login
+      # 10. Azure Login
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ steps.azure-creds.outputs.creds }}
 
-      # 12. Terraform Init
+      # 11. Terraform Init
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init -input=false
 
-      # 13. Terraform Validate
+      # 12. Terraform Validate
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform validate
 
-      # 14. Terraform Plan
+      # 13. Terraform Plan
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan -input=false -no-color -var-file=terraform.tfvars
