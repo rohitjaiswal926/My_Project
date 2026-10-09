@@ -1,12 +1,12 @@
 resource "azurerm_linux_virtual_machine" "virtual" {
   for_each = var.virtual_machine
 
-  name                  = each.value.name
-  resource_group_name   = each.value.resource_group_name
-  location              = each.value.location
-  size                  = each.value.size
-  admin_username        = each.value.admin_username
-  
+  name                = each.value.name
+  resource_group_name = each.value.resource_group_name
+  location            = each.value.location
+  size                = each.value.size
+  admin_username      = each.value.admin_username
+
   admin_password        = each.value.admin_password
   network_interface_ids = each.value.network_interface_ids
 
